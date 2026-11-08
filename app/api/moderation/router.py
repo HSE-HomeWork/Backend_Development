@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.schemas.moderation import AnnoncePredict
+from app.schemas import AnnoncePredict
 from app.service import moderation as moderation_service
 
 router = APIRouter()
