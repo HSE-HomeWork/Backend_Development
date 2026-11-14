@@ -40,7 +40,13 @@ external = ["WPS"]
 
 [tool.pytest]
 testpaths = ["tests","hw2"]
-pythonpath = ["."]
+pythonpath = [
+    ".",
+    "hw2/01_async_prices",
+    "hw2/02_find_blocking",
+    "hw2/03_thread_safe_lru",
+    "hw2/04_mini_event_loop",
+]
 addopts = [
     "--strict-markers",
     "--import-mode=importlib",
