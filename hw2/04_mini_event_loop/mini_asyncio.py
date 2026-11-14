@@ -31,6 +31,9 @@ class Sleep:
 
 # TODO
 
+@dataclass
+class AwaitTask:
+    tid: int
 
 # ---- Scheduler + global "current running loop" ----
 
@@ -43,6 +46,8 @@ class Scheduler:
         self.ready: deque[tuple[int, Task, Any]] = deque()
         self.sleeping: list[tuple[float, int, Task]] = []
         # TODO: state для waiters / results
+        self.waiters : dict[int, list[tuple[int, Task]]] = {}
+        self.results : dict[int, Any] = {}
         self.next_id = 0
 
     def _new_tid(self) -> int:
@@ -70,7 +75,9 @@ class Scheduler:
 
     def _has_work(self) -> bool:
         # TODO
-        return bool(self.ready or self.sleeping)
+        # добавил тут проверку на ждущих
+        return bool(self.ready or self.sleeping or self.waiters)
+        
 
     def _wake_sleeping(self) -> None:
         now = time.monotonic()
@@ -87,6 +94,8 @@ class Scheduler:
             next_wake = min(w for w, _, _ in self.sleeping)
             time.sleep(max(0.0, next_wake - time.monotonic()))
         # TODO: deadlock detection
+        else:
+            raise RuntimeError("deadlock")
 
     def _step_one(self) -> None:
         tid, task, value = self.ready.popleft()
@@ -98,12 +107,26 @@ class Scheduler:
         self._handle_syscall(tid, task, syscall)
 
     def _finish_task(self, tid: int, result: Any) -> None:  # noqa: ANN401
-        raise NotImplementedError
+        self.results[tid] = result
+
+        for waiter_tid, waiter_task in self.waiters.pop(tid, []):
+            self.ready.append((waiter_tid, waiter_task, result))
 
     def _handle_syscall(self, tid: int, task: Task, syscall: Any) -> None:  # noqa: ANN401
         if isinstance(syscall, Sleep):
             self.sleeping.append((time.monotonic() + syscall.duration, tid, task))
         # TODO: case для AwaitTask
+        elif isinstance(syscall,AwaitTask):
+            target_tid = syscall.tid
+
+            if target_tid in self.results:
+                self.ready.append(
+                    (tid, task, self.results[target_tid])
+                )   
+            else:
+                self.waiters.setdefault(target_tid, []).append(
+                    (tid, task)
+                )
         else:
             raise RuntimeError(f"unknown syscall: {syscall!r}")
 
@@ -126,7 +149,8 @@ def create_task(coro: Task) -> int:
 
 # TODO: await_task(tid) helper
 def await_task(tid: int) -> Task:
-    raise NotImplementedError
+    result = yield AwaitTask(tid)
+    return result
 
 
 def run(main: Task) -> None:
