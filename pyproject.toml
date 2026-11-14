@@ -18,6 +18,7 @@ dev = [
 
 [tool.ruff]
 line-length = 65
+extend-exclude = ["hw2/**/test_*.py"]
 
 [tool.ruff.lint]
 select = ["ALL"]
