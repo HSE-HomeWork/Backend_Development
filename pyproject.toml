@@ -38,7 +38,7 @@ external = ["WPS"]
 ]
 
 [tool.pytest]
-testpaths = ["tests"]
+testpaths = ["tests","hw2"]
 pythonpath = ["."]
 addopts = [
     "--strict-markers",
