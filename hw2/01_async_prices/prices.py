@@ -24,7 +24,10 @@ async def get_prices_sequential(shops: list[str]) -> list[int]:
 
     Подсказка: обычный цикл for и await fetch_price(...) внутри.
     """
-    raise NotImplementedError
+    prices: list[int] = []
+    for shop in shops:
+        prices.append(await fetch_price(shop))
+    return prices
 
 
 # ---------- Задача 1.2 ----------
@@ -35,7 +38,11 @@ async def get_prices_concurrent(shops: list[str]) -> list[int]:
 
     Подсказка: asyncio.gather.
     """
-    raise NotImplementedError
+    tasks: list[asyncio.Task[int]] = []
+    for shop in shops:
+        task = asyncio.create_task(fetch_price(shop))
+        tasks.append(task)
+    return await asyncio.gather(*tasks)
 
 
 # ---------- Задача 1.3 ----------
@@ -46,7 +53,12 @@ async def get_price_or_none(shop: str, timeout: float = 1.0) -> int | None:
 
     Подсказка: asyncio.wait_for и except TimeoutError.
     """
-    raise NotImplementedError
+    try:
+        result = await asyncio.wait_for(fetch_price(shop),timeout=timeout)
+    except asyncio.TimeoutError:
+        return None
+    else:
+        return result
 
 
 async def get_prices_with_timeout(shops: list[str], timeout: float = 1.0) -> list[int | None]:
@@ -54,7 +66,11 @@ async def get_prices_with_timeout(shops: list[str], timeout: float = 1.0) -> lis
 
     Подсказка: gather по get_price_or_none.
     """
-    raise NotImplementedError
+    tasks: list[asyncio.Task[int | None]] = []
+    for shop in shops:
+        task = asyncio.create_task(get_price_or_none(shop, timeout=timeout))
+        tasks.append(task)
+    return await asyncio.gather(*tasks)
 
 
 # ---------- Задача 1.4 (дополнительная) ----------
@@ -65,8 +81,12 @@ async def get_prices_limited(shops: list[str], limit: int = 3) -> list[int]:
 
     Подсказка: asyncio.Semaphore(limit) и async with внутри вспомогательной функции.
     """
-    raise NotImplementedError
+    sem = asyncio.Semaphore(value=limit)
+    async def price_limit(shop: str)->int:
+        async with sem:
+            return await fetch_price(shop)
 
+    return await asyncio.gather(*(price_limit(shop) for shop in shops))
 
 if __name__ == "__main__":
     import time
